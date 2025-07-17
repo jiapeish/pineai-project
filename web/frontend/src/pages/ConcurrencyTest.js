@@ -34,7 +34,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { modelAPI, inferenceAPI } from '../services/api';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -627,18 +627,6 @@ const ConcurrencyTest = () => {
           ))}
         </Row>
         )}
-      </Card>
-
-      <Card title="热更新测试说明" size="small" style={{ marginTop: 24 }}>
-        <Paragraph>
-          <ul>
-            <li>在并发测试过程中，可以切换到模型管理页面修改模型配置</li>
-            <li>新请求将使用更新后的模型配置，而正在进行的请求不受影响</li>
-            <li>通过观察不同标签页的响应差异，可以验证热更新功能</li>
-            <li>建议在测试过程中尝试修改模型的后端类型或配置参数</li>
-            <li>并发测试可以验证系统的稳定性和性能表现</li>
-          </ul>
-        </Paragraph>
       </Card>
     </div>
   );

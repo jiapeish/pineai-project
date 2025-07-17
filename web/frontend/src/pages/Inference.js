@@ -14,7 +14,6 @@ import {
   Tag,
   Row,
   Col,
-  Divider,
   Tooltip,
   message,
 } from 'antd';
@@ -30,9 +29,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { modelAPI, inferenceAPI } from '../services/api';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
+
+// 状态持久化的key
+const STORAGE_KEY = 'inference_test_state';
 
 const Inference = () => {
   const location = useLocation();
@@ -42,6 +44,62 @@ const Inference = () => {
   const [currentModel, setCurrentModel] = useState(null);
   const [eventSource, setEventSource] = useState(null);
   const outputRef = useRef(null);
+
+  // 保存状态到localStorage
+  const saveState = (state) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      console.warn('Failed to save state to localStorage:', error);
+    }
+  };
+
+  // 从localStorage恢复状态
+  const loadState = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.warn('Failed to load state from localStorage:', error);
+    }
+    return null;
+  };
+
+  // 组件挂载时恢复状态
+  useEffect(() => {
+    const savedState = loadState();
+    if (savedState) {
+      setStreamOutput(savedState.streamOutput || '');
+      setCurrentModel(savedState.currentModel || null);
+      
+      // 恢复表单状态
+      if (savedState.formData) {
+        form.setFieldsValue(savedState.formData);
+      }
+    }
+  }, [form]);
+
+  // 状态变化时保存到localStorage
+  useEffect(() => {
+    const stateToSave = {
+      streamOutput,
+      currentModel,
+      formData: form.getFieldsValue(),
+      timestamp: Date.now()
+    };
+    saveState(stateToSave);
+  }, [streamOutput, currentModel]);
+
+  // 添加调试信息
+  useEffect(() => {
+    console.log('Inference - Current state:', {
+      streamOutput,
+      currentModel,
+      formData: form.getFieldsValue()
+    });
+  }, [streamOutput, currentModel]);
 
   // 添加CSS动画
   useEffect(() => {
@@ -81,6 +139,20 @@ const Inference = () => {
     if (model) {
       setCurrentModel(model);
       form.setFieldsValue({ version: model.version });
+      
+      // 保存模型选择状态
+      const currentState = loadState() || {};
+      const newState = {
+        ...currentState,
+        currentModel: model,
+        formData: {
+          ...currentState.formData,
+          model: value,
+          version: model.version
+        },
+        timestamp: Date.now()
+      };
+      saveState(newState);
     }
   };
 
@@ -146,6 +218,9 @@ const Inference = () => {
     setStreamOutput('');
     form.resetFields();
     setCurrentModel(null);
+    // 清除localStorage中的状态
+    localStorage.removeItem(STORAGE_KEY);
+    message.success('已清空所有内容');
   };
 
   const handleCopy = () => {
@@ -258,6 +333,19 @@ const Inference = () => {
                   rows={6}
                   showCount
                   maxLength={2000}
+                  onChange={(e) => {
+                    // 手动保存表单状态
+                    const currentState = loadState() || {};
+                    const newState = {
+                      ...currentState,
+                      formData: {
+                        ...currentState.formData,
+                        input: e.target.value
+                      },
+                      timestamp: Date.now()
+                    };
+                    saveState(newState);
+                  }}
                 />
               </Form.Item>
 
@@ -422,20 +510,6 @@ const Inference = () => {
           </Card>
         </Col>
       </Row>
-
-      <Divider />
-
-      <Card title="使用说明" size="small">
-        <Paragraph>
-          <ul>
-            <li>选择已注册且状态为"就绪"的模型进行推理测试</li>
-            <li>支持流式输出，可以实时查看推理过程</li>
-            <li>可以随时停止推理过程</li>
-            <li>支持复制和下载推理结果</li>
-            <li>推理过程中可以切换到其他页面，不会影响当前推理</li>
-          </ul>
-        </Paragraph>
-      </Card>
     </div>
   );
 };

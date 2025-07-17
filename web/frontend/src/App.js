@@ -6,7 +6,6 @@ import {
   RobotOutlined,
   MessageOutlined,
   ExperimentOutlined,
-  BarChartOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -16,7 +15,6 @@ import Dashboard from './pages/Dashboard';
 import ModelManagement from './pages/ModelManagement';
 import Inference from './pages/Inference';
 import ConcurrencyTest from './pages/ConcurrencyTest';
-import Metrics from './pages/Metrics';
 import Settings from './pages/Settings';
 
 const { Header, Sider, Content } = Layout;
@@ -45,11 +43,6 @@ function App() {
       key: '/concurrency',
       icon: <ExperimentOutlined />,
       label: '并发测试',
-    },
-    {
-      key: '/metrics',
-      icon: <BarChartOutlined />,
-      label: '性能指标',
     },
     {
       key: '/settings',
@@ -86,7 +79,6 @@ function App() {
             <Route path="/models" element={<ModelManagement />} />
             <Route path="/inference" element={<Inference />} />
             <Route path="/concurrency" element={<ConcurrencyTest />} />
-            <Route path="/metrics" element={<Metrics />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Content>

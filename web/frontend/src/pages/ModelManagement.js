@@ -482,7 +482,7 @@ const ModelManagement = () => {
                 label="模型名称"
                 rules={[
                   { required: true, message: '请输入模型名称' },
-                  { pattern: /^[a-zA-Z0-9_-]+$/, message: '模型名称只能包含字母、数字、下划线和连字符' },
+                  { pattern: /^[a-zA-Z0-9._-]+$/, message: '模型名称只能包含字母、数字、小数点、下划线和连字符' },
                 ]}
               >
                 <Input placeholder="例如: gpt-4o" disabled={!!editingModel} />
