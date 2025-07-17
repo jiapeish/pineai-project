@@ -43,19 +43,15 @@ func (r *ModelRegistry) RegisterModel(ctx context.Context, req *model.ModelRegis
 		Config:      req.Config,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
+		LastUsedAt:  time.Now(),
+		IdleTimeout: 1 * time.Minute, // 默认30分钟空闲超时
+		IsLoaded:    false,
 	}
 
 	log.Printf("[REGISTRY] Initializing model instance: %+v", instance)
 	// 初始化模型
 	if err := instance.Initialize(); err != nil {
 		log.Printf("[REGISTRY][ERROR] Model instance initialize failed: %v", err)
-		return err
-	}
-
-	log.Printf("[REGISTRY] Starting model process for: %s-%s", req.Name, req.Version)
-	// 启动模型进程
-	if err := r.processManager.StartModelProcess(ctx, instance); err != nil {
-		log.Printf("[REGISTRY][ERROR] StartModelProcess failed: %v", err)
 		return err
 	}
 
@@ -70,24 +66,92 @@ func (r *ModelRegistry) RegisterModel(ctx context.Context, req *model.ModelRegis
 	}
 
 	r.models[req.Name][req.Version] = instance
-	instance.Status = model.StatusReady
+
+	// 首次注册时立即启动进程
+	log.Printf("[REGISTRY] Starting model process for: %s-%s (first registration)", req.Name, req.Version)
+	if err := r.loadModel(ctx, instance); err != nil {
+		log.Printf("[REGISTRY][ERROR] StartModelProcess failed: %v", err)
+		instance.Status = model.StatusUnloaded
+	} else {
+		instance.Status = model.StatusReady
+		instance.IsLoaded = true
+	}
 
 	log.Printf("[REGISTRY] Model registered successfully: %s-%s", req.Name, req.Version)
 	return nil
 }
 
-// GetModel 获取模型实例
-// 设计意图：只返回ready状态的模型，并增加活跃连接计数
+// loadModel 加载模型（启动进程）
+func (r *ModelRegistry) loadModel(ctx context.Context, instance *model.ModelInstance) error {
+	log.Printf("[REGISTRY] Loading model: %s-%s", instance.Name, instance.Version)
+
+	// 启动模型进程
+	if err := r.processManager.StartModelProcess(ctx, instance); err != nil {
+		log.Printf("[REGISTRY][ERROR] Failed to start model process: %v", err)
+		return err
+	}
+
+	instance.IsLoaded = true
+	instance.Status = model.StatusReady
+	instance.LastUsedAt = time.Now()
+
+	log.Printf("[REGISTRY] Model loaded successfully: %s-%s", instance.Name, instance.Version)
+	return nil
+}
+
+// unloadModel 卸载模型（停止进程）
+func (r *ModelRegistry) unloadModel(instance *model.ModelInstance) error {
+	log.Printf("[REGISTRY] Unloading model: %s-%s", instance.Name, instance.Version)
+
+	// 停止模型进程
+	modelID := instance.Name + "-" + instance.Version
+	if err := r.processManager.StopModelProcess(modelID); err != nil {
+		log.Printf("[REGISTRY][ERROR] Failed to stop model process: %v", err)
+		return err
+	}
+
+	instance.IsLoaded = false
+	instance.Status = model.StatusUnloaded
+
+	log.Printf("[REGISTRY] Model unloaded successfully: %s-%s", instance.Name, instance.Version)
+	return nil
+}
+
+// GetModel 获取模型实例（支持延迟加载）
+// 设计意图：支持延迟加载，如果模型未加载则自动加载
 func (r *ModelRegistry) GetModel(name, version string) (*model.ModelInstance, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	if versions, exists := r.models[name]; exists {
 		if instance, exists := versions[version]; exists {
-			// 只返回ready状态的实例
-			if instance.Status == model.StatusReady {
+			// 检查模型状态
+			switch instance.Status {
+			case model.StatusReady:
+				// 模型已就绪，更新使用时间并增加连接计数
+				instance.LastUsedAt = time.Now()
 				atomic.AddInt32(&instance.ActiveConnections, 1)
 				return instance, nil
+
+			case model.StatusUnloaded:
+				// 模型已卸载，触发延迟加载
+				log.Printf("[REGISTRY] Triggering lazy load for model: %s-%s", name, version)
+				if err := r.loadModel(context.Background(), instance); err != nil {
+					return nil, fmt.Errorf("failed to lazy load model: %w", err)
+				}
+				atomic.AddInt32(&instance.ActiveConnections, 1)
+				return instance, nil
+
+			case model.StatusLoading:
+				// 模型正在加载中，等待加载完成
+				return nil, fmt.Errorf("model is still loading")
+
+			case model.StatusDeprecated:
+				// 模型已废弃，不提供服务
+				return nil, fmt.Errorf("model is deprecated")
+
+			default:
+				return nil, fmt.Errorf("model status is invalid: %s", instance.Status)
 			}
 		}
 	}
@@ -154,6 +218,9 @@ func (r *ModelRegistry) UpdateModel(ctx context.Context, name, oldVersion, newVe
 		Config:      config,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
+		LastUsedAt:  time.Now(),
+		IdleTimeout: 1 * time.Minute, // 使用相同的空闲超时时间
+		IsLoaded:    false,
 	}
 
 	// 初始化新版本
@@ -162,7 +229,7 @@ func (r *ModelRegistry) UpdateModel(ctx context.Context, name, oldVersion, newVe
 	}
 
 	// 启动新版本模型进程
-	if err := r.processManager.StartModelProcess(ctx, newInstance); err != nil {
+	if err := r.loadModel(ctx, newInstance); err != nil {
 		return err
 	}
 
@@ -195,6 +262,19 @@ func (r *ModelRegistry) ListModels() *model.ModelListResponse {
 		for version, instance := range versions {
 			// 创建实例副本，避免并发修改
 			instanceCopy := *instance
+
+			// 为现有模型设置默认值（兼容性处理）
+			if instanceCopy.LastUsedAt.IsZero() {
+				instanceCopy.LastUsedAt = instanceCopy.CreatedAt
+			}
+			if instanceCopy.IdleTimeout == 0 {
+				instanceCopy.IdleTimeout = 1 * time.Minute
+			}
+			// 如果IsLoaded为false且状态为ready，说明是现有模型，设置为已加载
+			if !instanceCopy.IsLoaded && instanceCopy.Status == model.StatusReady {
+				instanceCopy.IsLoaded = true
+			}
+
 			modelsCopy[name][version] = &instanceCopy
 		}
 	}
@@ -271,6 +351,44 @@ func (r *ModelRegistry) CleanupDeprecatedModels() {
 	}
 }
 
+// CheckIdleModels 检查并卸载空闲模型
+// 设计意图：自动卸载长时间未使用的模型，释放资源
+func (r *ModelRegistry) CheckIdleModels() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for name, versions := range r.models {
+		for version, instance := range versions {
+			// 为现有模型设置默认值（兼容性处理）
+			if instance.LastUsedAt.IsZero() {
+				instance.LastUsedAt = instance.CreatedAt
+			}
+			if instance.IdleTimeout == 0 {
+				instance.IdleTimeout = 1 * time.Minute
+			}
+			// 如果IsLoaded为false且状态为ready，说明是现有模型，设置为已加载
+			if !instance.IsLoaded && instance.Status == model.StatusReady {
+				instance.IsLoaded = true
+			}
+
+			// 卸载条件：ready状态 + 无活跃连接 + 超过空闲超时时间
+			if instance.Status == model.StatusReady &&
+				instance.ActiveConnections == 0 &&
+				instance.IsLoaded &&
+				time.Since(instance.LastUsedAt) > instance.IdleTimeout {
+
+				log.Printf("[REGISTRY] Unloading idle model: %s-%s (idle for %v)",
+					name, version, time.Since(instance.LastUsedAt))
+
+				// 卸载模型
+				if err := r.unloadModel(instance); err != nil {
+					log.Printf("[REGISTRY][ERROR] Failed to unload idle model %s-%s: %v", name, version, err)
+				}
+			}
+		}
+	}
+}
+
 // StartCleanupRoutine 启动清理协程
 func (r *ModelRegistry) StartCleanupRoutine() {
 	go func() {
@@ -279,6 +397,7 @@ func (r *ModelRegistry) StartCleanupRoutine() {
 
 		for range ticker.C {
 			r.CleanupDeprecatedModels()
+			r.CheckIdleModels() // 检查并卸载空闲模型
 		}
 	}()
 }

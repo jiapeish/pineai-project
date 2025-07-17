@@ -12,6 +12,7 @@ const (
 	StatusReady      ModelStatus = "ready"      // 可用
 	StatusUpdating   ModelStatus = "updating"   // 更新中
 	StatusDeprecated ModelStatus = "deprecated" // 已废弃（但仍有活跃连接）
+	StatusUnloaded   ModelStatus = "unloaded"   // 已卸载（进程已停止）
 	StatusDeleted    ModelStatus = "deleted"    // 已删除
 )
 
@@ -36,14 +37,17 @@ type ModelConfig struct {
 
 // ModelInstance 模型实例
 type ModelInstance struct {
-	Name              string      `json:"name"`
-	Version           string      `json:"version"`
-	BackendType       BackendType `json:"backend_type"`
-	Status            ModelStatus `json:"status"`
-	Config            ModelConfig `json:"config"`
-	ActiveConnections int32       `json:"active_connections"` // 原子计数器
-	CreatedAt         time.Time   `json:"created_at"`
-	UpdatedAt         time.Time   `json:"updated_at"`
+	Name              string        `json:"name"`
+	Version           string        `json:"version"`
+	BackendType       BackendType   `json:"backend_type"`
+	Status            ModelStatus   `json:"status"`
+	Config            ModelConfig   `json:"config"`
+	ActiveConnections int32         `json:"active_connections"` // 原子计数器
+	CreatedAt         time.Time     `json:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at"`
+	LastUsedAt        time.Time     `json:"last_used_at"` // 最后使用时间
+	IdleTimeout       time.Duration `json:"idle_timeout"` // 空闲超时时间（默认30分钟）
+	IsLoaded          bool          `json:"is_loaded"`    // 是否已加载（进程是否运行）
 }
 
 // InferenceRequest 推理请求

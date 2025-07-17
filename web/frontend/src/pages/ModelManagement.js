@@ -210,15 +210,18 @@ const ModelManagement = () => {
   const handleHotUpdateSubmit = async () => {
     try {
       const values = await hotUpdateForm.validateFields();
-      
       hotUpdateMutation.mutate({
         name: values.name,
-        version: values.new_version,
+        version: values.old_version, // 这里要用旧版本号
         data: {
+          new_version: values.new_version, // 这里要加新版本号
           backend_type: values.backend_type,
           description: values.description,
           api_key: values.api_key,
           base_url: values.base_url,
+          model_name: values.name, // 确保 model_name 传递
+          max_tokens: values.max_tokens || 1000, // 默认1000
+          temperature: values.temperature || 0.7, // 默认0.7
         },
       });
     } catch (error) {
@@ -274,6 +277,8 @@ const ModelManagement = () => {
           loading: { color: 'processing', text: '加载中' },
           error: { color: 'error', text: '错误' },
           stopped: { color: 'default', text: '已停止' },
+          unloaded: { color: 'default', text: '已卸载' },
+          deprecated: { color: 'warning', text: '已废弃' },
         };
         const config = statusConfig[status] || { color: 'default', text: status };
         

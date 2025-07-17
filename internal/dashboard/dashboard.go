@@ -86,6 +86,10 @@ func (d *Dashboard) ShowTerminalUI() {
 			if model.Status == "ready" {
 				status = "✅ 就绪"
 				readyModels++
+			} else if model.Status == "unloaded" {
+				status = "💤 已卸载"
+			} else if model.Status == "deprecated" {
+				status = "⚠️ 已废弃"
 			}
 
 			connections := int(model.ActiveConnections)
@@ -95,8 +99,10 @@ func (d *Dashboard) ShowTerminalUI() {
 
 			// 获取端口号
 			port := "-"
-			if proc, ok := d.registry.GetModelProcess(modelName, version); ok {
-				port = fmt.Sprintf("%d", proc.Port)
+			if model.IsLoaded {
+				if proc, ok := d.registry.GetModelProcess(modelName, version); ok {
+					port = fmt.Sprintf("%d", proc.Port)
+				}
 			}
 
 			fmt.Printf("%-20s %-10s %-15s %-10s %-6s %-8d %-15s\n",
