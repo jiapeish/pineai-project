@@ -213,7 +213,7 @@ api_keys:
 ```bash
 ./test/core_features_test.sh
 
-./hot_update_test.sh
+./test/hot_update_test.sh
 
 ```
 
