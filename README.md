@@ -2,15 +2,6 @@
 
 基于Golang和React构建的现代化AI模型管理平台，支持动态模型注册与更新，并对接第三方LLM实现流式响应。
 
-## 🎯 项目特色
-
-- **前后端分离**: Golang后端 + React前端
-- **现代化UI**: 基于Ant Design的响应式界面
-- **实时监控**: 流式推理和性能指标可视化
-- **并发测试**: 多标签页并发测试和热更新验证
-- **热更新**: 支持模型版本热更新，零停机升级
-- **进程管理**: 实时监控和管理模型进程
-
 ## 🚀 核心特性
 
 - ✅ **模型注册与管理** - 支持动态注册、查看、更新模型
@@ -32,38 +23,7 @@
 - **进程管理**: 独立Golang进程 + HTTP通信
 - **前端框架**: React + Ant Design + React Query
 
-### 核心设计理念
-- **进程隔离**: 每个模型运行在独立进程中，确保稳定性
-- **热更新**: 新进程启动后，旧进程继续服务现有连接
-- **资源管理**: 自动端口分配和进程生命周期管理
-- **前后端分离**: 后端提供RESTful API，前端提供现代化界面
 
-### 项目结构
-```
-pineai-project/
-├── cmd/server/          # 后端主程序入口
-├── internal/            # 后端内部包
-│   ├── handler/         # HTTP处理器
-│   ├── model/           # 模型定义和进程管理
-│   ├── registry/        # 模型注册表
-│   ├── streamer/        # 流式推理器
-│   ├── metrics/         # Prometheus指标
-│   └── dashboard/       # 管理面板
-├── cmd/                 # 可执行程序
-│   ├── server/          # 主服务进程
-│   └── model/           # 模型服务进程
-├── web/                 # 前端应用
-│   ├── frontend/        # React前端
-│   ├── templates/       # HTML模板
-│   └── static/          # 静态资源
-├── pkg/                 # 公共包
-├── config/              # 配置文件
-├── test/                # 测试脚本
-├── start.sh            # 一键启动脚本
-├── stop.sh             # 一键停止脚本
-├── go.mod              # 依赖管理
-└── README.md           # 项目文档
-```
 
 ## 🚀 快速开始
 
@@ -140,43 +100,6 @@ npm start
 - **API数据**: http://localhost:8080/api/v1/dashboard
 - **性能指标**: http://localhost:8080/metrics
 
-## 🌐 前端使用指南
-
-### 仪表盘
-- **系统概览**: 显示总模型数、就绪模型、活跃连接等关键指标
-- **模型列表**: 快速查看所有模型状态和基本信息
-- **进程状态**: 实时监控模型进程的运行状态
-- **性能指标**: 查看请求统计和响应时间
-
-### 模型管理
-1. **注册模型**
-   - 点击"注册模型"按钮
-   - 填写模型名称、版本、后端类型等信息
-   - 对于 OpenAI/Gemini 模型，需要提供 API 密钥
-   - 支持自定义基础 URL
-
-2. **热更新**
-   - 点击模型列表中的"热更新"按钮
-   - 输入新版本号和相关配置
-   - 系统会自动启动新版本进程
-   - 旧版本进程在新版本就绪后自动停止
-
-3. **进程管理**
-   - 启动/停止模型进程
-   - 查看进程状态和端口信息
-   - 监控进程运行时间
-
-### 推理测试
-- 选择模型和版本
-- 输入测试文本
-- 支持流式和非流式推理
-- 实时显示推理结果
-
-### 并发测试
-- 模拟多用户并发访问
-- 测试系统性能和稳定性
-- 监控连接数和响应时间
-
 ## 📖 API 使用指南
 
 ### 1. 注册模型
@@ -208,17 +131,6 @@ curl -X POST http://localhost:8080/api/v1/models \
   }'
 ```
 
-#### 注册Mock模型（用于测试）
-```bash
-curl -X POST http://localhost:8080/api/v1/models \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "mock-model",
-    "version": "v1",
-    "backend_type": "mock",
-    "description": "Mock测试模型"
-  }'
-```
 
 ### 2. 查看模型列表
 ```bash
@@ -280,7 +192,7 @@ curl http://localhost:8080/api/v1/stats
 
 ### 模型配置参数
 - `backend_type`: 后端类型 (openai/gemini/mock)
-- `api_key`: API密钥 (可选，默认使用配置文件中的密钥)
+- `api_key`: API密钥 (默认使用配置文件中的密钥)
 - `base_url`: 自定义API地址 (可选)
 - `model_name`: 模型名称
 - `max_tokens`: 最大输出token数
@@ -298,117 +210,17 @@ api_keys:
 
 ## 🧪 测试示例
 
-### 1. 使用Mock模型测试
 ```bash
-# 注册Mock模型
-curl -X POST http://localhost:8080/api/v1/models \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "test-model",
-    "version": "v1",
-    "backend_type": "mock"
-  }'
+./test/core_features_test.sh
 
-# 测试流式推理
-curl -X POST http://localhost:8080/api/v1/infer \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "test-model",
-    "version": "v1",
-    "input": "Hello, world!"
-  }' \
-  --no-buffer
+./hot_update_test.sh
+
 ```
-
-### 2. Golang进程架构测试
-```bash
-# 运行完整的Golang进程架构测试
-./test/golang_process_test.sh
-```
-
-### 3. 热更新测试
-```bash
-# 在另一个终端启动长时间运行的推理请求
-curl -X POST http://localhost:8080/api/v1/infer \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "test-model",
-    "version": "v1",
-    "input": "This is a long request that will take time to complete..."
-  }' \
-  --no-buffer &
-
-# 在主终端更新模型
-curl -X PUT http://localhost:8080/api/v1/models/test-model/version/v2 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "backend_type": "mock"
-  }'
-
-# 验证新请求使用新版本
-curl -X POST http://localhost:8080/api/v1/infer \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "test-model",
-    "version": "v2",
-    "input": "New request after update"
-  }' \
-  --no-buffer
-```
-
-## 🔍 设计亮点
-
-### 1. 热更新机制
-- **版本隔离**: 新版本不影响现有连接
-- **引用计数**: 使用atomic操作跟踪活跃连接
-- **延迟清理**: 只有无活跃连接时才清理资源
-
-### 2. 流式响应
-- **SSE协议**: 比WebSocket更适合单向数据推送
-- **超时控制**: 60秒超时，避免长时间阻塞
-- **错误处理**: 优雅处理连接断开和错误
-
-### 3. 并发安全
-- **读写锁**: 读多写少的场景优化
-- **原子操作**: 活跃连接计数无锁更新
-- **深拷贝**: 避免并发访问问题
-
-### 4. 进程管理
-- **独立进程**: 每个模型运行在独立进程中
-- **自动端口分配**: 动态分配可用端口
-- **进程监控**: 实时监控进程状态和资源使用
-
-## 🎨 前端功能
-
-### 核心页面
-- **仪表盘**: 实时系统概览和关键指标
-- **模型管理**: 动态注册、编辑、删除模型，支持热更新
-- **推理测试**: 流式推理测试和实时输出显示
-- **并发测试**: 多标签页并发测试和热更新验证
-- **性能指标**: 详细的性能监控和图表分析
-- **系统设置**: 配置管理和帮助文档
-
-### 技术特性
-- **响应式设计**: 支持桌面和移动设备
-- **实时更新**: 自动刷新数据和状态
-- **流式输出**: 支持SSE流式推理显示
-- **动画效果**: 流畅的页面过渡和交互动画
-- **主题定制**: 基于Ant Design的设计系统
-- **进程管理**: 实时监控和管理模型进程
-
-### 技术栈
-- **React 18**: 现代化的React框架
-- **Ant Design 5**: 企业级UI组件库
-- **React Query**: 数据获取和缓存管理
-- **React Router**: 客户端路由
-- **Recharts**: 数据可视化图表
-- **Framer Motion**: 动画库
-- **Axios**: HTTP客户端
 
 ## 📊 Self Report
 
-- **总耗时**: 4 小时
-- **实际做题时间段**: 14:00 ~ 18:00
+- **总耗时**: 7 小时
+- **实际做题时间段**: 14:00 ~ 18:00，20:00-22:50
 - **完成情况**:
   - [x] 模型注册 / 更新 / 查看
   - [x] 流式推理接口
@@ -421,22 +233,20 @@ curl -X POST http://localhost:8080/api/v1/infer \
   - [x] React前端界面
   - [x] 并发测试功能
   - [x] 进程管理功能
-  - [x] 热更新前端界面
   - [ ] 多版本分流
   - [ ] 灰度发布
 - **备注说明**:
   - 实现了真正的模型进程隔离架构，每个模型运行在独立Golang进程中
   - 支持热更新：新进程启动后，新请求路由到新进程，旧进程继续服务现有连接
   - 自动端口分配和进程生命周期管理
-  - 使用SSE协议实现流式响应，比WebSocket更适合此场景
-  - 支持OpenAI和Gemini真实API，以及Mock后端用于测试
-  - 完整的React前端管理界面，支持所有后端功能
-  - 下一步可优化：支持更多后端类型，实现负载均衡和故障转移
+  - 支持OpenAI和Gemini真实API
+  - 完整的React前端管理界面
+  - 下一步可优化：支持更多后端类型，实现负载均衡和故障转移，多版本分流，Pod化之后实现灰度发布
 
 ## 🤝 贡献
 
 欢迎提交Issue和Pull Request！
 
-## �� 许可证
+## 许可证
 
 MIT License
