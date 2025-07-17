@@ -41,6 +41,8 @@ go mod tidy
 ```
 
 ### 2. 启动服务
+在config/config.yaml里填充真实的API-KEY
+
 ```bash
 go run cmd/server/main.go
 ```
