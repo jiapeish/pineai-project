@@ -12,9 +12,7 @@ import {
   Tabs,
   Tag,
   Alert,
-  Spin,
   message,
-  Tooltip,
   Divider,
   Statistic,
   Progress,
@@ -23,13 +21,13 @@ import {
   PlayCircleOutlined,
   StopOutlined,
   PlusOutlined,
-  DeleteOutlined,
   ReloadOutlined,
   ExperimentOutlined,
   FireOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { modelAPI, inferenceAPI } from '../services/api';
@@ -65,14 +63,14 @@ const ConcurrencyTest = () => {
     }
   );
 
-  const readyModels = models?.filter(m => m.status === 'ready') || [];
+  const readyModels = models?.data?.models?.filter(m => m.status === 'ready') || [];
 
   useEffect(() => {
     // 初始化第一个测试标签页
     if (testTabs.length === 0) {
       addTestTab();
     }
-  }, []);
+  }, [testTabs.length]); // 修复依赖项
 
   const addTestTab = () => {
     const newTabKey = `tab-${Date.now()}`;

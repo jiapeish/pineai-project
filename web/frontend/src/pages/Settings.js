@@ -17,18 +17,8 @@ import {
   Select,
   message,
 } from 'antd';
-import {
-  SettingOutlined,
-  InfoCircleOutlined,
-  QuestionCircleOutlined,
-  BookOutlined,
-  BugOutlined,
-  GithubOutlined,
-  ApiOutlined,
-  SecurityScanOutlined,
-} from '@ant-design/icons';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { Panel } = Collapse;
 const { Option } = Select;
 const { TextArea } = Input;

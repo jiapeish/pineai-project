@@ -198,6 +198,7 @@ test_info "4.2 在推理过程中更新 gpt-4o"
 UPDATE_RESPONSE=$(curl -s -X PUT "${BASE_URL}/models/gpt-4o/version/v1" \
   -H "Content-Type: application/json" \
   -d '{
+    "new_version": "v2",
     "config": {
       "model_name": "gpt-4o",
       "max_tokens": 1500,

@@ -7,7 +7,6 @@ import {
   Statistic,
   Typography,
   Spin,
-  Alert,
   Table,
   Tag,
   Progress,
@@ -33,7 +32,6 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   FireOutlined,
-  ThunderboltOutlined,
   BarChartOutlined,
 } from '@ant-design/icons';
 import { motion } from 'framer-motion';

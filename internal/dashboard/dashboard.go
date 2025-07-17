@@ -111,7 +111,8 @@ func (d *Dashboard) ShowTerminalUI() {
 
 	fmt.Printf("\n💡 提示:\n")
 	fmt.Printf("  - 按 Ctrl+C 退出\n")
-	fmt.Printf("  - 访问 http://localhost:8080/api/v1/dashboard 查看网页版\n")
+	fmt.Printf("  - 访问 http://localhost:3000 查看前端管理界面\n")
+	fmt.Printf("  - 访问 http://localhost:8080/api/v1/dashboard 查看API数据\n")
 	fmt.Printf("  - 访问 http://localhost:8080/metrics 查看 Prometheus 指标\n")
 }
 

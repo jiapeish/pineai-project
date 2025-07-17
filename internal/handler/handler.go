@@ -85,7 +85,33 @@ func (h *Handler) RegisterModel(c *gin.Context) {
 // GET /models
 func (h *Handler) ListModels(c *gin.Context) {
 	models := h.registry.ListModels()
-	c.JSON(http.StatusOK, models)
+
+	// 将嵌套对象格式转换为数组格式，以适配前端期望
+	var modelList []map[string]interface{}
+
+	for name, versions := range models.Models {
+		for version, instance := range versions {
+			modelInfo := map[string]interface{}{
+				"name":               name,
+				"version":            version,
+				"backend_type":       string(instance.BackendType),
+				"status":             string(instance.Status),
+				"active_connections": instance.ActiveConnections,
+				"created_at":         instance.CreatedAt,
+				"updated_at":         instance.UpdatedAt,
+				"config": map[string]interface{}{
+					"model_name":  instance.Config.ModelName,
+					"max_tokens":  instance.Config.MaxTokens,
+					"temperature": instance.Config.Temperature,
+				},
+			}
+			modelList = append(modelList, modelInfo)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"models": modelList,
+	})
 }
 
 // UpdateModel 热更新模型（支持版本号变更）
@@ -294,8 +320,19 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 // GET /processes
 func (h *Handler) ListProcesses(c *gin.Context) {
 	processes := h.registry.ListProcesses()
+
+	// 统计运行中的进程数
+	runningProcesses := 0
+	for _, process := range processes {
+		if process.Status == "running" {
+			runningProcesses++
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"processes": processes,
+		"processes":         processes,
+		"running_processes": runningProcesses,
+		"total_processes":   len(processes),
 	})
 }
 

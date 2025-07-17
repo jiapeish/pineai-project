@@ -43,6 +43,19 @@ const Inference = () => {
   const [eventSource, setEventSource] = useState(null);
   const outputRef = useRef(null);
 
+  // 添加CSS动画
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   const { data: models, isLoading: modelsLoading } = useQuery(
     'models',
     modelAPI.getModels,
@@ -64,7 +77,7 @@ const Inference = () => {
   }, [location.state, currentModel, form]);
 
   const handleModelChange = (value) => {
-    const model = models?.find(m => m.name === value);
+    const model = models?.data?.models?.find(m => m.name === value);
     if (model) {
       setCurrentModel(model);
       form.setFieldsValue({ version: model.version });
@@ -83,11 +96,23 @@ const Inference = () => {
       setIsStreaming(true);
       setStreamOutput('');
 
+      console.log('Starting inference with values:', values);
+      
       const eventSource = inferenceAPI.streamInference(
         values,
         (data) => {
+          console.log('Received streaming data:', data);
           if (data.content) {
+            console.log('Adding content to output:', data.content);
+            // 立即更新状态，实现真正的打字机效果
             setStreamOutput(prev => prev + data.content);
+            
+            // 立即滚动到底部
+            requestAnimationFrame(() => {
+              if (outputRef.current) {
+                outputRef.current.scrollTop = outputRef.current.scrollHeight;
+              }
+            });
           }
         },
         (error) => {
@@ -96,6 +121,7 @@ const Inference = () => {
           setIsStreaming(false);
         },
         () => {
+          console.log('Streaming completed');
           setIsStreaming(false);
           message.success('推理完成');
         }
@@ -109,7 +135,7 @@ const Inference = () => {
 
   const handleStopStreaming = () => {
     if (eventSource) {
-      eventSource.close();
+      eventSource.abort();
       setEventSource(null);
     }
     setIsStreaming(false);
@@ -151,7 +177,14 @@ const Inference = () => {
     }
   }, [streamOutput]);
 
-  const readyModels = models?.filter(m => m.status === 'ready') || [];
+  // 调试信息
+  console.log('Inference - models:', models);
+  console.log('Inference - models.data:', models?.data);
+  console.log('Inference - models.data.models:', models?.data?.models);
+  console.log('Inference - models.data.models is array:', Array.isArray(models?.data?.models));
+  
+  const readyModels = models?.data?.models?.filter(m => m.status === 'ready') || [];
+  console.log('Inference - readyModels:', readyModels);
 
   return (
     <div>
@@ -337,6 +370,7 @@ const Inference = () => {
                 lineHeight: '1.5',
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word',
+                position: 'relative',
               }}
             >
               <AnimatePresence>
@@ -348,7 +382,17 @@ const Inference = () => {
                   >
                     {streamOutput}
                     {isStreaming && (
-                      <span className="streaming-indicator" style={{ marginLeft: 4 }} />
+                      <span 
+                        className="streaming-indicator" 
+                        style={{ 
+                          marginLeft: 4,
+                          animation: 'blink 1s infinite',
+                          color: '#1890ff',
+                          fontWeight: 'bold'
+                        }} 
+                      >
+                        |
+                      </span>
                     )}
                   </motion.div>
                 ) : (

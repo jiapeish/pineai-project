@@ -12,6 +12,7 @@ import {
   Spin,
   Alert,
   Typography,
+  Tooltip,
 } from 'antd';
 import {
   RobotOutlined,
@@ -19,9 +20,13 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
+  PlayCircleOutlined,
+  StopOutlined,
+  ReloadOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import { motion } from 'framer-motion';
-import { dashboardAPI } from '../services/api';
+import { dashboardAPI, processAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -37,6 +42,13 @@ const Dashboard = () => {
     }
   );
 
+  // 调试信息
+  console.log('Dashboard Data:', dashboardData);
+  console.log('Dashboard Data Type:', typeof dashboardData);
+  console.log('Dashboard Data Keys:', dashboardData ? Object.keys(dashboardData) : 'null');
+  console.log('Models Array:', dashboardData?.data?.models);
+  console.log('Models Length:', dashboardData?.data?.models?.length);
+
   const { data: metricsData } = useQuery(
     'metrics',
     dashboardAPI.getMetrics,
@@ -44,6 +56,20 @@ const Dashboard = () => {
       refetchInterval: 10000, // 每10秒刷新一次
     }
   );
+
+  const { data: processesData } = useQuery(
+    'processes',
+    processAPI.getAllProcesses,
+    {
+      refetchInterval: 3000, // 每3秒刷新一次
+    }
+  );
+
+  // 调试信息
+  console.log('Processes Data:', processesData);
+  console.log('Processes Data Type:', typeof processesData);
+  console.log('Processes Data Keys:', processesData ? Object.keys(processesData) : 'null');
+  console.log('Running Processes:', processesData?.data?.running_processes);
 
   if (isLoading) {
     return (
@@ -73,28 +99,27 @@ const Dashboard = () => {
   const stats = [
     {
       title: '总模型数',
-      value: dashboardData?.total_models || 0,
+      value: dashboardData?.data?.total_models || 0,
       icon: <RobotOutlined />,
       color: '#1890ff',
     },
     {
       title: '就绪模型',
-      value: dashboardData?.ready_models || 0,
+      value: dashboardData?.data?.ready_models || 0,
       icon: <CheckCircleOutlined />,
       color: '#52c41a',
     },
     {
       title: '活跃连接',
-      value: dashboardData?.total_connections || 0,
+      value: dashboardData?.data?.total_connections || 0,
       icon: <MessageOutlined />,
       color: '#722ed1',
     },
     {
-      title: '平均响应时间',
-      value: metricsData?.avg_response_time || 0,
-      suffix: 'ms',
-      icon: <ClockCircleOutlined />,
-      color: '#fa8c16',
+      title: '运行进程',
+      value: processesData?.data?.running_processes || 0,
+      icon: <PlayCircleOutlined />,
+      color: '#13c2c2',
     },
   ];
 
@@ -127,13 +152,24 @@ const Dashboard = () => {
       key: 'status',
       render: (status) => {
         const statusConfig = {
-          ready: { color: 'success', text: '就绪' },
-          loading: { color: 'processing', text: '加载中' },
-          error: { color: 'error', text: '错误' },
+          ready: { color: 'success', text: '就绪', icon: <CheckCircleOutlined /> },
+          loading: { color: 'processing', text: '加载中', icon: <SyncOutlined spin /> },
+          error: { color: 'error', text: '错误', icon: <ExclamationCircleOutlined /> },
+          stopped: { color: 'default', text: '已停止', icon: <StopOutlined /> },
         };
-        const config = statusConfig[status] || { color: 'default', text: status };
-        return <Tag color={config.color}>{config.text}</Tag>;
+        const config = statusConfig[status] || { color: 'default', text: status, icon: null };
+        return (
+          <Tag color={config.color} icon={config.icon}>
+            {config.text}
+          </Tag>
+        );
       },
+    },
+    {
+      title: '进程端口',
+      dataIndex: 'port',
+      key: 'port',
+      render: (port) => port ? <Tag color="cyan">{port}</Tag> : '-',
     },
     {
       title: '操作',
@@ -163,7 +199,7 @@ const Dashboard = () => {
     <div>
       <Title level={2}>系统仪表盘</Title>
       <Text type="secondary">
-        最后更新: {dashboardData?.last_updated ? new Date(dashboardData.last_updated).toLocaleString('zh-CN') : '未知'}
+        最后更新: {dashboardData?.data?.last_updated ? new Date(dashboardData.data.last_updated).toLocaleString('zh-CN') : '未知'}
       </Text>
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
@@ -201,10 +237,10 @@ const Dashboard = () => {
               </Space>
             }
           >
-            {dashboardData?.models && dashboardData.models.length > 0 ? (
+            {dashboardData?.data?.models && dashboardData.data.models.length > 0 ? (
               <Table
                 columns={modelColumns}
-                dataSource={dashboardData.models}
+                dataSource={dashboardData.data.models}
                 rowKey={(record) => `${record.name}-${record.version}`}
                 pagination={false}
                 size="small"
@@ -228,6 +264,95 @@ const Dashboard = () => {
         </Col>
       </Row>
 
+      {processesData?.data?.processes && processesData.data.processes.length > 0 && (
+        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+          <Col span={24}>
+            <Card title="进程状态">
+              <Table
+                columns={[
+                  {
+                    title: '模型',
+                    dataIndex: 'model_name',
+                    key: 'model_name',
+                    render: (text, record) => (
+                      <Space>
+                        <Text strong>{text}</Text>
+                        <Tag color="blue">{record.version}</Tag>
+                      </Space>
+                    ),
+                  },
+                  {
+                    title: '进程ID',
+                    dataIndex: 'pid',
+                    key: 'pid',
+                    render: (pid) => <Tag color="orange">{pid}</Tag>,
+                  },
+                  {
+                    title: '端口',
+                    dataIndex: 'port',
+                    key: 'port',
+                    render: (port) => <Tag color="cyan">{port}</Tag>,
+                  },
+                  {
+                    title: '状态',
+                    dataIndex: 'status',
+                    key: 'status',
+                    render: (status) => {
+                      const statusConfig = {
+                        running: { color: 'success', text: '运行中' },
+                        stopped: { color: 'default', text: '已停止' },
+                        error: { color: 'error', text: '错误' },
+                      };
+                      const config = statusConfig[status] || { color: 'default', text: status };
+                      return <Tag color={config.color}>{config.text}</Tag>;
+                    },
+                  },
+                  {
+                    title: '启动时间',
+                    dataIndex: 'start_time',
+                    key: 'start_time',
+                    render: (time) => time ? new Date(time).toLocaleString('zh-CN') : '-',
+                  },
+                  {
+                    title: '操作',
+                    key: 'action',
+                    render: (_, record) => (
+                      <Space>
+                        <Tooltip title="重启进程">
+                          <Button
+                            type="link"
+                            size="small"
+                            icon={<ReloadOutlined />}
+                            onClick={() => {
+                              // 这里可以添加重启进程的逻辑
+                            }}
+                          />
+                        </Tooltip>
+                        <Tooltip title="查看日志">
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => {
+                              // 这里可以添加查看日志的逻辑
+                            }}
+                          >
+                            日志
+                          </Button>
+                        </Tooltip>
+                      </Space>
+                    ),
+                  },
+                ]}
+                dataSource={processesData.data.processes}
+                rowKey={(record) => `${record.model_name}-${record.version}-${record.pid}`}
+                pagination={false}
+                size="small"
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
+
       {metricsData && (
         <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
           <Col span={24}>
@@ -250,19 +375,19 @@ const Dashboard = () => {
                 </Col>
                 <Col xs={24} sm={12} md={6}>
                   <Statistic
-                    title="失败请求"
-                    value={metricsData.failed_requests || 0}
-                    prefix={<ExclamationCircleOutlined />}
-                    valueStyle={{ color: '#ff4d4f' }}
+                    title="平均响应时间"
+                    value={metricsData.avg_response_time || 0}
+                    suffix="ms"
+                    prefix={<ClockCircleOutlined />}
+                    valueStyle={{ color: '#fa8c16' }}
                   />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
                   <Statistic
-                    title="成功率"
-                    value={metricsData.success_rate || 0}
-                    suffix="%"
-                    precision={2}
-                    valueStyle={{ color: '#1890ff' }}
+                    title="活跃连接"
+                    value={metricsData.active_connections || 0}
+                    prefix={<MessageOutlined />}
+                    valueStyle={{ color: '#722ed1' }}
                   />
                 </Col>
               </Row>

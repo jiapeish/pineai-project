@@ -72,9 +72,9 @@ func main() {
 	// 在goroutine中启动服务器
 	go func() {
 		log.Printf("Starting PineAI Backend server on %s", serverAddr)
+		log.Printf("🌐 Frontend UI: http://localhost:3000")
 		log.Printf("📊 Prometheus metrics: http://%s/metrics", serverAddr)
-		log.Printf("🎛️  Management dashboard: http://%s/dashboard", serverAddr)
-		log.Printf("📋 API dashboard: http://%s/api/v1/dashboard", serverAddr)
+		log.Printf("🎛️  API dashboard: http://%s/api/v1/dashboard", serverAddr)
 
 		if err := r.Run(serverAddr); err != nil {
 			log.Fatalf("Failed to start server: %v", err)

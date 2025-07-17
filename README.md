@@ -8,6 +8,8 @@
 - **现代化UI**: 基于Ant Design的响应式界面
 - **实时监控**: 流式推理和性能指标可视化
 - **并发测试**: 多标签页并发测试和热更新验证
+- **热更新**: 支持模型版本热更新，零停机升级
+- **进程管理**: 实时监控和管理模型进程
 
 ## 🚀 核心特性
 
@@ -17,6 +19,8 @@
 - ✅ **多后端支持** - 支持OpenAI、Gemini、Mock后端
 - ✅ **并发安全** - 使用读写锁和原子操作保证线程安全
 - ✅ **资源管理** - 自动清理废弃模型，避免内存泄漏
+- ✅ **进程管理** - 独立进程运行，支持启动/停止/重启
+- ✅ **前端管理** - 完整的Web管理界面
 
 ## 🏗️ 技术架构
 
@@ -26,11 +30,13 @@
 - **并发控制**: sync.RWMutex + atomic操作
 - **热更新**: 进程隔离 + 版本化模型实例
 - **进程管理**: 独立Golang进程 + HTTP通信
+- **前端框架**: React + Ant Design + React Query
 
 ### 核心设计理念
 - **进程隔离**: 每个模型运行在独立进程中，确保稳定性
 - **热更新**: 新进程启动后，旧进程继续服务现有连接
 - **资源管理**: 自动端口分配和进程生命周期管理
+- **前后端分离**: 后端提供RESTful API，前端提供现代化界面
 
 ### 项目结构
 ```
@@ -53,22 +59,34 @@ pineai-project/
 ├── pkg/                 # 公共包
 ├── config/              # 配置文件
 ├── test/                # 测试脚本
+├── start.sh            # 一键启动脚本
+├── stop.sh             # 一键停止脚本
 ├── go.mod              # 依赖管理
 └── README.md           # 项目文档
 ```
 
 ## 🚀 快速开始
 
-### 1. 启动后端服务
+### 方法一：一键启动（推荐）
 
-#### 安装Go依赖
+```bash
+# 启动所有服务
+./start.sh
+
+# 停止所有服务
+./stop.sh
+```
+
+### 方法二：手动启动
+
+#### 1. 启动后端服务
+
+##### 安装Go依赖
 ```bash
 go mod tidy
 ```
 
-
-
-#### 配置API密钥
+##### 配置API密钥
 在 `config/config.yaml` 中配置真实的API密钥：
 ```yaml
 api_keys:
@@ -78,13 +96,13 @@ api_keys:
     key: "your-gemini-api-key"
 ```
 
-#### 构建服务
+##### 构建服务
 ```bash
 # 构建主服务和模型进程
 ./build.sh
 ```
 
-#### 启动后端
+##### 启动后端
 ```bash
 # 使用构建的可执行文件
 ./build/pineai-server
@@ -95,34 +113,69 @@ go run cmd/server/main.go
 
 后端服务将在 `http://localhost:8080` 启动
 
-#### 健康检查
+##### 健康检查
 ```bash
 curl http://localhost:8080/api/v1/health
 ```
 
-### 2. 启动前端应用
+#### 2. 启动前端应用
 
-#### 安装Node.js依赖
+##### 安装Node.js依赖
 ```bash
 cd web/frontend
 npm install
 ```
 
-#### 启动前端开发服务器
+##### 启动前端开发服务器
 ```bash
 npm start
-# 或者使用启动脚本
-./start.sh
 ```
 
 前端应用将在 `http://localhost:3000` 启动，自动代理到后端API
 
-### 3. 访问应用
+#### 3. 访问应用
 
-- **前端界面**: http://localhost:3000
+- **前端管理界面**: http://localhost:3000
 - **后端API**: http://localhost:8080
-- **管理面板**: http://localhost:8080/dashboard
+- **API数据**: http://localhost:8080/api/v1/dashboard
 - **性能指标**: http://localhost:8080/metrics
+
+## 🌐 前端使用指南
+
+### 仪表盘
+- **系统概览**: 显示总模型数、就绪模型、活跃连接等关键指标
+- **模型列表**: 快速查看所有模型状态和基本信息
+- **进程状态**: 实时监控模型进程的运行状态
+- **性能指标**: 查看请求统计和响应时间
+
+### 模型管理
+1. **注册模型**
+   - 点击"注册模型"按钮
+   - 填写模型名称、版本、后端类型等信息
+   - 对于 OpenAI/Gemini 模型，需要提供 API 密钥
+   - 支持自定义基础 URL
+
+2. **热更新**
+   - 点击模型列表中的"热更新"按钮
+   - 输入新版本号和相关配置
+   - 系统会自动启动新版本进程
+   - 旧版本进程在新版本就绪后自动停止
+
+3. **进程管理**
+   - 启动/停止模型进程
+   - 查看进程状态和端口信息
+   - 监控进程运行时间
+
+### 推理测试
+- 选择模型和版本
+- 输入测试文本
+- 支持流式和非流式推理
+- 实时显示推理结果
+
+### 并发测试
+- 模拟多用户并发访问
+- 测试系统性能和稳定性
+- 监控连接数和响应时间
 
 ## 📖 API 使用指南
 
@@ -136,12 +189,9 @@ curl -X POST http://localhost:8080/api/v1/models \
     "name": "gpt-3.5",
     "version": "v1",
     "backend_type": "openai",
-    "config": {
-      "backend_type": "openai",
-      "model_name": "gpt-3.5-turbo",
-      "max_tokens": 1000,
-      "temperature": 0.7
-    }
+    "api_key": "your-openai-api-key",
+    "base_url": "https://api.openai.com/v1",
+    "description": "GPT-3.5 Turbo模型"
   }'
 ```
 
@@ -153,12 +203,8 @@ curl -X POST http://localhost:8080/api/v1/models \
     "name": "gemini-pro",
     "version": "v1",
     "backend_type": "gemini",
-    "config": {
-      "backend_type": "gemini",
-      "model_name": "models/gemini-pro",
-      "max_tokens": 1000,
-      "temperature": 0.7
-    }
+    "api_key": "your-gemini-api-key",
+    "description": "Google Gemini Pro模型"
   }'
 ```
 
@@ -170,9 +216,7 @@ curl -X POST http://localhost:8080/api/v1/models \
     "name": "mock-model",
     "version": "v1",
     "backend_type": "mock",
-    "config": {
-      "backend_type": "mock"
-    }
+    "description": "Mock测试模型"
   }'
 ```
 
@@ -195,15 +239,13 @@ curl -X POST http://localhost:8080/api/v1/infer \
 
 ### 4. 热更新模型
 ```bash
-curl -X PUT http://localhost:8080/api/v1/models/gpt-3.5/version/v1 \
+curl -X PUT http://localhost:8080/api/v1/models/gpt-3.5/version/v2 \
   -H "Content-Type: application/json" \
   -d '{
-    "config": {
-      "backend_type": "openai",
-      "model_name": "gpt-4",
-      "max_tokens": 2000,
-      "temperature": 0.5
-    }
+    "backend_type": "openai",
+    "api_key": "your-openai-api-key",
+    "base_url": "https://api.openai.com/v1",
+    "description": "GPT-3.5 Turbo模型 v2"
   }'
 ```
 
@@ -217,7 +259,16 @@ curl -X DELETE http://localhost:8080/api/v1/models/gpt-3.5/version/v1
 curl http://localhost:8080/api/v1/processes
 ```
 
-### 7. 查看进程统计
+### 7. 启动/停止进程
+```bash
+# 启动进程
+curl -X POST http://localhost:8080/api/v1/processes/gpt-3.5/version/v1/start
+
+# 停止进程
+curl -X POST http://localhost:8080/api/v1/processes/gpt-3.5/version/v1/stop
+```
+
+### 8. 查看进程统计
 ```bash
 curl http://localhost:8080/api/v1/stats
 ```
@@ -275,7 +326,7 @@ curl -X POST http://localhost:8080/api/v1/infer \
 ./test/golang_process_test.sh
 ```
 
-### 2. 热更新测试
+### 3. 热更新测试
 ```bash
 # 在另一个终端启动长时间运行的推理请求
 curl -X POST http://localhost:8080/api/v1/infer \
@@ -288,12 +339,10 @@ curl -X POST http://localhost:8080/api/v1/infer \
   --no-buffer &
 
 # 在主终端更新模型
-curl -X PUT http://localhost:8080/api/v1/models/test-model/version/v1 \
+curl -X PUT http://localhost:8080/api/v1/models/test-model/version/v2 \
   -H "Content-Type: application/json" \
   -d '{
-    "config": {
-      "backend_type": "mock"
-    }
+    "backend_type": "mock"
   }'
 
 # 验证新请求使用新版本
@@ -301,7 +350,7 @@ curl -X POST http://localhost:8080/api/v1/infer \
   -H "Content-Type: application/json" \
   -d '{
     "model": "test-model",
-    "version": "v1",
+    "version": "v2",
     "input": "New request after update"
   }' \
   --no-buffer
@@ -324,11 +373,16 @@ curl -X POST http://localhost:8080/api/v1/infer \
 - **原子操作**: 活跃连接计数无锁更新
 - **深拷贝**: 避免并发访问问题
 
+### 4. 进程管理
+- **独立进程**: 每个模型运行在独立进程中
+- **自动端口分配**: 动态分配可用端口
+- **进程监控**: 实时监控进程状态和资源使用
+
 ## 🎨 前端功能
 
 ### 核心页面
 - **仪表盘**: 实时系统概览和关键指标
-- **模型管理**: 动态注册、编辑、删除模型
+- **模型管理**: 动态注册、编辑、删除模型，支持热更新
 - **推理测试**: 流式推理测试和实时输出显示
 - **并发测试**: 多标签页并发测试和热更新验证
 - **性能指标**: 详细的性能监控和图表分析
@@ -340,6 +394,7 @@ curl -X POST http://localhost:8080/api/v1/infer \
 - **流式输出**: 支持SSE流式推理显示
 - **动画效果**: 流畅的页面过渡和交互动画
 - **主题定制**: 基于Ant Design的设计系统
+- **进程管理**: 实时监控和管理模型进程
 
 ### 技术栈
 - **React 18**: 现代化的React框架
@@ -348,6 +403,7 @@ curl -X POST http://localhost:8080/api/v1/infer \
 - **React Router**: 客户端路由
 - **Recharts**: 数据可视化图表
 - **Framer Motion**: 动画库
+- **Axios**: HTTP客户端
 
 ## 📊 Self Report
 
@@ -364,6 +420,8 @@ curl -X POST http://localhost:8080/api/v1/infer \
   - [x] 简易管理面板
   - [x] React前端界面
   - [x] 并发测试功能
+  - [x] 进程管理功能
+  - [x] 热更新前端界面
   - [ ] 多版本分流
   - [ ] 灰度发布
 - **备注说明**:
@@ -372,6 +430,7 @@ curl -X POST http://localhost:8080/api/v1/infer \
   - 自动端口分配和进程生命周期管理
   - 使用SSE协议实现流式响应，比WebSocket更适合此场景
   - 支持OpenAI和Gemini真实API，以及Mock后端用于测试
+  - 完整的React前端管理界面，支持所有后端功能
   - 下一步可优化：支持更多后端类型，实现负载均衡和故障转移
 
 ## 🤝 贡献

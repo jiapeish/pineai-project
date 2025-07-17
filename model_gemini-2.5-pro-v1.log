@@ -1,4 +1,0 @@
-[DEBUG] Found config file at: config/config.yaml
-[DEBUG] Creating streamer for backend type: gemini
-[DEBUG] Creating Gemini streamer
-2025/07/17 18:37:38 Starting model server for gemini-2.5-pro vv1 on port 8083
