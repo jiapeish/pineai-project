@@ -28,6 +28,8 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   RobotOutlined,
+  MessageOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { modelAPI, inferenceAPI } from '../services/api';
@@ -65,12 +67,7 @@ const ConcurrencyTest = () => {
 
   const readyModels = models?.data?.models?.filter(m => m.status === 'ready') || [];
 
-  useEffect(() => {
-    // 初始化第一个测试标签页
-    if (testTabs.length === 0) {
-      addTestTab();
-    }
-  }, [testTabs.length]); // 修复依赖项
+  // 移除自动创建标签页的逻辑，现在根据并发数量动态创建
 
   const addTestTab = () => {
     const newTabKey = `tab-${Date.now()}`;
@@ -101,6 +98,11 @@ const ConcurrencyTest = () => {
   };
 
   const startConcurrencyTest = async () => {
+    console.log('Starting concurrency test...');
+    console.log('Selected model:', selectedModel);
+    console.log('Test input:', testInput);
+    console.log('Concurrent count:', concurrentCount);
+    
     if (!selectedModel) {
       message.error('请选择要测试的模型');
       return;
@@ -121,27 +123,50 @@ const ConcurrencyTest = () => {
       endTime: null,
     });
 
-    // 重置所有标签页状态
-    setTestTabs(prev => prev.map(tab => ({
-      ...tab,
-      content: '',
-      isStreaming: false,
-      startTime: null,
-      endTime: null,
-      responseTime: 0,
-      status: 'idle',
-    })));
+    // 根据并发数量创建或调整测试标签页
+    const newTestTabs = [];
+    for (let i = 0; i < concurrentCount; i++) {
+      if (i < testTabs.length) {
+        // 重用现有的标签页，但重置状态
+        newTestTabs.push({
+          ...testTabs[i],
+          content: '',
+          isStreaming: false,
+          startTime: null,
+          endTime: null,
+          responseTime: 0,
+          status: 'idle',
+        });
+      } else {
+        // 创建新的标签页
+        newTestTabs.push({
+          key: `tab-${Date.now()}-${i}`,
+          title: `测试 ${i + 1}`,
+          content: '',
+          isStreaming: false,
+          startTime: null,
+          endTime: null,
+          responseTime: 0,
+          status: 'idle',
+        });
+      }
+    }
+    
+    console.log('Created test tabs:', newTestTabs);
+    setTestTabs(newTestTabs);
 
     // 并发执行测试
     const promises = [];
     for (let i = 0; i < concurrentCount; i++) {
-      if (i < testTabs.length) {
-        promises.push(runSingleTest(testTabs[i].key, i));
-      }
+      console.log(`Adding test ${i + 1} to promises`);
+      promises.push(runSingleTest(newTestTabs[i].key, i));
     }
+
+    console.log(`Starting ${promises.length} concurrent tests`);
 
     try {
       await Promise.all(promises);
+      console.log('All tests completed');
     } catch (error) {
       console.error('Concurrency test error:', error);
     }
@@ -157,14 +182,18 @@ const ConcurrencyTest = () => {
 
   const runSingleTest = async (tabKey, index) => {
     return new Promise((resolve) => {
+      console.log(`Starting test ${index + 1} with tabKey: ${tabKey}`);
       const startTime = Date.now();
       
       // 更新标签页状态
-      setTestTabs(prev => prev.map(tab => 
-        tab.key === tabKey 
-          ? { ...tab, isStreaming: true, startTime, status: 'running' }
-          : tab
-      ));
+      setTestTabs(prev => {
+        console.log(`Updating tab ${tabKey} to running state`);
+        return prev.map(tab => 
+          tab.key === tabKey 
+            ? { ...tab, isStreaming: true, startTime, status: 'running' }
+            : tab
+        );
+      });
 
       // 更新测试结果
       setTestResults(prev => ({
@@ -172,13 +201,15 @@ const ConcurrencyTest = () => {
         totalRequests: prev.totalRequests + 1,
       }));
 
-      const eventSource = inferenceAPI.streamInference(
+      console.log(`Calling inference API for test ${index + 1}`);
+      const xhr = inferenceAPI.streamInference(
         {
           model: selectedModel.name,
           version: selectedModel.version,
           input: `${testInput} (并发测试 #${index + 1})`,
         },
         (data) => {
+          console.log(`Test ${index + 1} received data:`, data);
           if (data.content) {
             setTestTabs(prev => prev.map(tab => 
               tab.key === tabKey 
@@ -213,6 +244,7 @@ const ConcurrencyTest = () => {
           resolve();
         },
         () => {
+          console.log(`Test ${index + 1} completed successfully`);
           const endTime = Date.now();
           const responseTime = endTime - startTime;
           
@@ -238,11 +270,14 @@ const ConcurrencyTest = () => {
         }
       );
 
-             // 设置超时
-       setTimeout(() => {
-         eventSource.close();
-         resolve();
-       }, testDurationSeconds * 1000);
+      // 设置超时
+      setTimeout(() => {
+        console.log(`Test ${index + 1} timeout reached`);
+        if (xhr && xhr.abort) {
+          xhr.abort();
+        }
+        resolve();
+      }, testDurationSeconds * 1000);
     });
   };
 
@@ -430,9 +465,6 @@ const ConcurrencyTest = () => {
                 <Button icon={<ReloadOutlined />} onClick={clearAllResults}>
                   清空结果
                 </Button>
-                <Button icon={<PlusOutlined />} onClick={addTestTab}>
-                  添加标签页
-                </Button>
               </Space>
             }
           >
@@ -498,53 +530,65 @@ const ConcurrencyTest = () => {
       </Row>
 
       <Card 
-        title="并发测试标签页" 
+        title="测试结果详情" 
         style={{ marginTop: 24 }}
         size="small"
+        extra={
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={clearAllResults}>
+              清空结果
+            </Button>
+          </Space>
+        }
       >
-        <Tabs
-          activeKey={activeTabKey}
-          onChange={setActiveTabKey}
-          type="editable-card"
-          onEdit={(targetKey, action) => {
-            if (action === 'add') {
-              addTestTab();
-            } else if (action === 'remove') {
-              removeTestTab(targetKey);
-            }
-          }}
-        >
-          {testTabs.map(tab => (
-            <TabPane
-              tab={
-                <Space>
-                  <span>{tab.title}</span>
-                  <Tag color={getStatusColor(tab.status)}>
-                    {getStatusText(tab.status)}
-                  </Tag>
-                  {tab.isStreaming && <div className="streaming-indicator" />}
-                </Space>
-              }
-              key={tab.key}
-            >
-              <div style={{ position: 'relative' }}>
-                <div
-                  ref={(el) => (testRefs.current[tab.key] = el)}
-                  className="stream-output"
-                  style={{
-                    minHeight: '200px',
-                    maxHeight: '400px',
-                    overflowY: 'auto',
-                    backgroundColor: '#f8f9fa',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '6px',
-                    padding: '16px',
-                    fontFamily: 'Monaco, Menlo, Ubuntu Mono, monospace',
-                    fontSize: '14px',
-                    lineHeight: '1.5',
-                    whiteSpace: 'pre-wrap',
-                    wordWrap: 'break-word',
-                  }}
+        {testTabs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <MessageOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
+            <div style={{ marginTop: 16, color: '#999' }}>
+              点击"开始并发测试"开始测试，结果将在这里显示
+            </div>
+          </div>
+        ) : (
+          <Row gutter={[16, 16]}>
+            {testTabs.map(tab => (
+              <Col xs={24} sm={12} lg={8} key={tab.key}>
+                <Card
+                  size="small"
+                  title={
+                    <Space>
+                      <span>{tab.title}</span>
+                      <Tag color={getStatusColor(tab.status)}>
+                        {getStatusText(tab.status)}
+                      </Tag>
+                      {tab.isStreaming && <div className="streaming-indicator" />}
+                    </Space>
+                  }
+                  extra={
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<CloseOutlined />}
+                      onClick={() => removeTestTab(tab.key)}
+                    />
+                  }
+                >
+                  <div
+                    ref={(el) => (testRefs.current[tab.key] = el)}
+                    className="stream-output"
+                    style={{
+                      minHeight: '150px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      backgroundColor: '#f8f9fa',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '6px',
+                      padding: '12px',
+                      fontFamily: 'Monaco, Menlo, Ubuntu Mono, monospace',
+                      fontSize: '12px',
+                      lineHeight: '1.4',
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word',
+                    }}
                 >
                   <AnimatePresence>
                     {tab.content ? (
@@ -578,10 +622,11 @@ const ConcurrencyTest = () => {
                     </Text>
                   </div>
                 )}
-              </div>
-            </TabPane>
+              </Card>
+            </Col>
           ))}
-        </Tabs>
+        </Row>
+        )}
       </Card>
 
       <Card title="热更新测试说明" size="small" style={{ marginTop: 24 }}>
