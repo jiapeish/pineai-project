@@ -23,6 +23,7 @@ chmod +x test/core_features_test.sh
 ## 🚀 使用步骤
 
 1. 启动服务器
+在config/config.yaml里填充真实的API-KEY
 ```bash
 go run cmd/main.go
 ```
