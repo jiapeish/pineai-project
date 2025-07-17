@@ -2,9 +2,9 @@
 # API密钥配置
 api_keys:
   openai:
-    key: "sk-proj-fixme"
+    key: "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"
   gemini:
-    key: "fixme"
+    key: "AIzaSyDfmFzaGTWU5SukEOP4VLrH-As2oWyaJis"
 
 # 服务器配置
 server:

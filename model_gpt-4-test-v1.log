@@ -1,0 +1,94 @@
+[DEBUG] Found config file at: config/config.yaml
+[DEBUG] Creating streamer for backend type: openai
+[DEBUG] Creating OpenAI streamer
+[DEBUG] Using config default OpenAI API key: sk-proj-BS...
+[DEBUG] Model config - Name: gpt-4, BackendType: openai, MaxTokens: 1000, Temperature: 0.700000
+[DEBUG] OpenAI client created successfully
+2025/07/17 18:36:21 Starting model server for gpt-4-test vv1 on port 8082
+2025/07/17 18:36:24 [MODEL_SERVER] Received inference request: model=gpt-4-test, version=v1, input=Hello from old version
+[DEBUG] Starting OpenAI stream inference
+[DEBUG] Input text: Hello from old version
+[DEBUG] Using configured model: gpt-4
+[DEBUG] OpenAI request details:
+[DEBUG]   Model: gpt-4
+[DEBUG]   MaxTokens: 1000
+[DEBUG]   Temperature: 0.700000
+[DEBUG]   Stream: true
+[DEBUG]   Messages count: 1
+[DEBUG]   First message role: user
+[DEBUG]   First message content length: 22
+[DEBUG] Creating OpenAI chat completion stream...
+[DEBUG] OpenAI stream created successfully
+[DEBUG] Starting to receive stream data...
+[DEBUG] Received token 1: 'Hello'
+[DEBUG] Received token 2: '!'
+[DEBUG] Received token 3: ' How'
+[DEBUG] Received token 4: ' can'
+[DEBUG] Received token 5: ' I'
+[DEBUG] Received token 6: ' assist'
+[DEBUG] Received token 7: ' you'
+[DEBUG] Received token 8: ' today'
+[DEBUG] Received token 9: '?'
+[DEBUG] Stream ended (EOF), total tokens received: 9
+[DEBUG] Sending stream end marker
+[DEBUG] OpenAI stream inference completed successfully
+2025/07/17 18:36:26 [MODEL_SERVER] Inference completed successfully
+[GIN] 2025/07/17 - 18:36:26 | 200 |  2.575911292s |             ::1 | POST     "/infer"
+2025/07/17 18:36:33 [MODEL_SERVER] Received inference request: model=gpt-4-test, version=v1, input=Hello from deprecated version
+[DEBUG] Starting OpenAI stream inference
+[DEBUG] Input text: Hello from deprecated version
+[DEBUG] Using configured model: gpt-4
+[DEBUG] OpenAI request details:
+[DEBUG]   Model: gpt-4
+[DEBUG]   MaxTokens: 1000
+[DEBUG]   Temperature: 0.700000
+[DEBUG]   Stream: true
+[DEBUG]   Messages count: 1
+[DEBUG]   First message role: user
+[DEBUG]   First message content length: 29
+[DEBUG] Creating OpenAI chat completion stream...
+[DEBUG] OpenAI stream created successfully
+[DEBUG] Starting to receive stream data...
+[DEBUG] Received token 1: 'Hello'
+[DEBUG] Received token 2: '!'
+[DEBUG] Received token 3: ' How'
+[DEBUG] Received token 4: ' can'
+[DEBUG] Received token 5: ' I'
+[DEBUG] Received token 6: ' assist'
+[DEBUG] Received token 7: ' you'
+[DEBUG] Received token 8: ' today'
+[DEBUG] Received token 9: '?'
+[DEBUG] Stream ended (EOF), total tokens received: 9
+[DEBUG] Sending stream end marker
+[DEBUG] OpenAI stream inference completed successfully
+2025/07/17 18:36:35 [MODEL_SERVER] Inference completed successfully
+[GIN] 2025/07/17 - 18:36:35 | 200 |  1.142932584s |             ::1 | POST     "/infer"
+2025/07/17 18:39:12 [MODEL_SERVER] Received inference request: model=gpt-4-test, version=v1, input=Hello from old version
+[DEBUG] Starting OpenAI stream inference
+[DEBUG] Input text: Hello from old version
+[DEBUG] Using configured model: gpt-4
+[DEBUG] OpenAI request details:
+[DEBUG]   Model: gpt-4
+[DEBUG]   MaxTokens: 1000
+[DEBUG]   Temperature: 0.700000
+[DEBUG]   Stream: true
+[DEBUG]   Messages count: 1
+[DEBUG]   First message role: user
+[DEBUG]   First message content length: 22
+[DEBUG] Creating OpenAI chat completion stream...
+[DEBUG] OpenAI stream created successfully
+[DEBUG] Starting to receive stream data...
+[DEBUG] Received token 1: 'Hello'
+[DEBUG] Received token 2: '!'
+[DEBUG] Received token 3: ' How'
+[DEBUG] Received token 4: ' can'
+[DEBUG] Received token 5: ' I'
+[DEBUG] Received token 6: ' assist'
+[DEBUG] Received token 7: ' you'
+[DEBUG] Received token 8: ' today'
+[DEBUG] Received token 9: '?'
+[DEBUG] Stream ended (EOF), total tokens received: 9
+[DEBUG] Sending stream end marker
+[DEBUG] OpenAI stream inference completed successfully
+2025/07/17 18:39:14 [MODEL_SERVER] Inference completed successfully
+[GIN] 2025/07/17 - 18:39:14 | 200 |      2.21245s |             ::1 | POST     "/infer"

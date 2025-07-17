@@ -1,0 +1,25 @@
+[DEBUG] Found config file at: config/config.yaml
+[DEBUG] Creating streamer for backend type: gemini
+[DEBUG] Creating Gemini streamer
+2025/07/17 18:24:17 Starting model server for gemini-pro vv1 on port 8083
+2025/07/17 18:24:43 [MODEL_SERVER] Received inference request: model=gemini-pro, version=v1, input=Tell me a joke
+2025/07/17 18:24:44 [MODEL_SERVER][ERROR] Stream inference failed: Gemini API error: 404 Not Found, body: 
+[GIN] 2025/07/17 - 18:24:44 | 200 |  1.352492917s |             ::1 | POST     "/infer"
+[GIN] 2025/07/17 - 18:24:49 | 200 |      33.166µs |             ::1 | GET      "/health"
+2025/07/17 18:24:53 Stopping model server for gemini-pro vv1
+2025/07/17 18:24:53 Model server for gemini-pro vv1 stopped
+[DEBUG] Found config file at: config/config.yaml
+[DEBUG] Creating streamer for backend type: gemini
+[DEBUG] Creating Gemini streamer
+2025/07/17 18:25:00 Starting model server for gemini-pro vv1 on port 8083
+2025/07/17 18:25:05 [MODEL_SERVER] Received inference request: model=gemini-pro, version=v1, input=Tell me a joke
+2025/07/17 18:25:06 [MODEL_SERVER][ERROR] Stream inference failed: Gemini API error: 404 Not Found, body: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+[GIN] 2025/07/17 - 18:25:06 | 200 |  1.021817833s |             ::1 | POST     "/infer"
+2025/07/17 18:35:12 Stopping model server for gemini-pro vv1
+2025/07/17 18:35:12 Model server for gemini-pro vv1 stopped

@@ -34,9 +34,21 @@ func NewOpenAIStreamer(modelConfig model.ModelConfig, appConfig *config.Config) 
 	apiKey := modelConfig.APIKey
 	if apiKey == "" || apiKey == "use_config_default" {
 		apiKey = appConfig.GetOpenAIKey()
-		fmt.Printf("[DEBUG] Using config default OpenAI API key: %s...\n", apiKey[:10])
+		if apiKey == "" {
+			fmt.Printf("[ERROR] OpenAI API key is empty!\n")
+		} else if len(apiKey) >= 10 {
+			fmt.Printf("[DEBUG] Using config default OpenAI API key: %s...\n", apiKey[:10])
+		} else {
+			fmt.Printf("[DEBUG] Using config default OpenAI API key: %s\n", apiKey)
+		}
 	} else {
-		fmt.Printf("[DEBUG] Using model-specific OpenAI API key: %s...\n", apiKey[:10])
+		if apiKey == "" {
+			fmt.Printf("[ERROR] Model-specific OpenAI API key is empty!\n")
+		} else if len(apiKey) >= 10 {
+			fmt.Printf("[DEBUG] Using model-specific OpenAI API key: %s...\n", apiKey[:10])
+		} else {
+			fmt.Printf("[DEBUG] Using model-specific OpenAI API key: %s\n", apiKey)
+		}
 	}
 
 	// 打印模型配置信息

@@ -8,11 +8,11 @@ import (
 type ModelStatus string
 
 const (
-	StatusLoading   ModelStatus = "loading"   // 加载中
-	StatusReady     ModelStatus = "ready"     // 可用
-	StatusUpdating  ModelStatus = "updating"  // 更新中
+	StatusLoading    ModelStatus = "loading"    // 加载中
+	StatusReady      ModelStatus = "ready"      // 可用
+	StatusUpdating   ModelStatus = "updating"   // 更新中
 	StatusDeprecated ModelStatus = "deprecated" // 已废弃（但仍有活跃连接）
-	StatusDeleted   ModelStatus = "deleted"   // 已删除
+	StatusDeleted    ModelStatus = "deleted"    // 已删除
 )
 
 // BackendType 后端类型枚举
@@ -63,7 +63,8 @@ type ModelRegistrationRequest struct {
 
 // ModelUpdateRequest 模型更新请求
 type ModelUpdateRequest struct {
-	Config ModelConfig `json:"config" binding:"required"`
+	NewVersion string      `json:"new_version" binding:"required"` // 新版本号
+	Config     ModelConfig `json:"config" binding:"required"`      // 新配置
 }
 
 // ModelListResponse 模型列表响应
@@ -124,4 +125,4 @@ type ModelError struct {
 
 func (e *ModelError) Error() string {
 	return e.Message
-} 
+}

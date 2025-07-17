@@ -1,6 +1,13 @@
-# PineAI Backend - 多模型托管与推理服务平台
+# PineAI - 多模型托管与推理服务平台
 
-基于Golang和Gin框架实现的多模型托管与推理服务平台，支持动态模型注册与更新，并对接第三方LLM实现流式响应。
+基于Golang和React构建的现代化AI模型管理平台，支持动态模型注册与更新，并对接第三方LLM实现流式响应。
+
+## 🎯 项目特色
+
+- **前后端分离**: Golang后端 + React前端
+- **现代化UI**: 基于Ant Design的响应式界面
+- **实时监控**: 流式推理和性能指标可视化
+- **并发测试**: 多标签页并发测试和热更新验证
 
 ## 🚀 核心特性
 
@@ -17,42 +24,105 @@
 - **Web框架**: Gin (轻量级、高性能)
 - **流式协议**: Server-Sent Events (SSE) - 比WebSocket更适合单向数据推送
 - **并发控制**: sync.RWMutex + atomic操作
-- **热更新**: 版本化模型实例 + 引用计数
+- **热更新**: 进程隔离 + 版本化模型实例
+- **进程管理**: 独立Golang进程 + HTTP通信
+
+### 核心设计理念
+- **进程隔离**: 每个模型运行在独立进程中，确保稳定性
+- **热更新**: 新进程启动后，旧进程继续服务现有连接
+- **资源管理**: 自动端口分配和进程生命周期管理
 
 ### 项目结构
 ```
 pineai-project/
-├── cmd/server/          # 主程序入口
-├── internal/
+├── cmd/server/          # 后端主程序入口
+├── internal/            # 后端内部包
 │   ├── handler/         # HTTP处理器
-│   ├── model/           # 模型定义和状态管理
+│   ├── model/           # 模型定义和进程管理
 │   ├── registry/        # 模型注册表
-│   └── streamer/        # 流式推理器
+│   ├── streamer/        # 流式推理器
+│   ├── metrics/         # Prometheus指标
+│   └── dashboard/       # 管理面板
+├── cmd/                 # 可执行程序
+│   ├── server/          # 主服务进程
+│   └── model/           # 模型服务进程
+├── web/                 # 前端应用
+│   ├── frontend/        # React前端
+│   ├── templates/       # HTML模板
+│   └── static/          # 静态资源
 ├── pkg/                 # 公共包
+├── config/              # 配置文件
+├── test/                # 测试脚本
 ├── go.mod              # 依赖管理
 └── README.md           # 项目文档
 ```
 
 ## 🚀 快速开始
 
-### 1. 安装依赖
+### 1. 启动后端服务
+
+#### 安装Go依赖
 ```bash
 go mod tidy
 ```
 
-### 2. 启动服务
-在config/config.yaml里填充真实的API-KEY
 
+
+#### 配置API密钥
+在 `config/config.yaml` 中配置真实的API密钥：
+```yaml
+api_keys:
+  openai:
+    key: "your-openai-api-key"
+  gemini:
+    key: "your-gemini-api-key"
+```
+
+#### 构建服务
 ```bash
+# 构建主服务和模型进程
+./build.sh
+```
+
+#### 启动后端
+```bash
+# 使用构建的可执行文件
+./build/pineai-server
+
+# 或者直接运行
 go run cmd/server/main.go
 ```
 
-服务将在 `http://localhost:8080` 启动
+后端服务将在 `http://localhost:8080` 启动
 
-### 3. 健康检查
+#### 健康检查
 ```bash
 curl http://localhost:8080/api/v1/health
 ```
+
+### 2. 启动前端应用
+
+#### 安装Node.js依赖
+```bash
+cd web/frontend
+npm install
+```
+
+#### 启动前端开发服务器
+```bash
+npm start
+# 或者使用启动脚本
+./start.sh
+```
+
+前端应用将在 `http://localhost:3000` 启动，自动代理到后端API
+
+### 3. 访问应用
+
+- **前端界面**: http://localhost:3000
+- **后端API**: http://localhost:8080
+- **管理面板**: http://localhost:8080/dashboard
+- **性能指标**: http://localhost:8080/metrics
 
 ## 📖 API 使用指南
 
@@ -142,6 +212,16 @@ curl -X PUT http://localhost:8080/api/v1/models/gpt-3.5/version/v1 \
 curl -X DELETE http://localhost:8080/api/v1/models/gpt-3.5/version/v1
 ```
 
+### 6. 查看模型进程
+```bash
+curl http://localhost:8080/api/v1/processes
+```
+
+### 7. 查看进程统计
+```bash
+curl http://localhost:8080/api/v1/stats
+```
+
 ## 🔧 配置说明
 
 ### 环境变量
@@ -187,6 +267,12 @@ curl -X POST http://localhost:8080/api/v1/infer \
     "input": "Hello, world!"
   }' \
   --no-buffer
+```
+
+### 2. Golang进程架构测试
+```bash
+# 运行完整的Golang进程架构测试
+./test/golang_process_test.sh
 ```
 
 ### 2. 热更新测试
@@ -238,24 +324,55 @@ curl -X POST http://localhost:8080/api/v1/infer \
 - **原子操作**: 活跃连接计数无锁更新
 - **深拷贝**: 避免并发访问问题
 
+## 🎨 前端功能
+
+### 核心页面
+- **仪表盘**: 实时系统概览和关键指标
+- **模型管理**: 动态注册、编辑、删除模型
+- **推理测试**: 流式推理测试和实时输出显示
+- **并发测试**: 多标签页并发测试和热更新验证
+- **性能指标**: 详细的性能监控和图表分析
+- **系统设置**: 配置管理和帮助文档
+
+### 技术特性
+- **响应式设计**: 支持桌面和移动设备
+- **实时更新**: 自动刷新数据和状态
+- **流式输出**: 支持SSE流式推理显示
+- **动画效果**: 流畅的页面过渡和交互动画
+- **主题定制**: 基于Ant Design的设计系统
+
+### 技术栈
+- **React 18**: 现代化的React框架
+- **Ant Design 5**: 企业级UI组件库
+- **React Query**: 数据获取和缓存管理
+- **React Router**: 客户端路由
+- **Recharts**: 数据可视化图表
+- **Framer Motion**: 动画库
+
 ## 📊 Self Report
 
-- **总耗时**: 2 小时
-- **实际做题时间段**: 14:00 ~ 16:00
+- **总耗时**: 4 小时
+- **实际做题时间段**: 14:00 ~ 18:00
 - **完成情况**:
   - [x] 模型注册 / 更新 / 查看
   - [x] 流式推理接口
   - [x] 热更新不影响已有连接
+  - [x] 独立模型进程管理
+  - [x] 进程隔离和资源管理
   - [x] 多后端支持 (OpenAI + Gemini + Mock)
+  - [x] Prometheus metrics
+  - [x] 简易管理面板
+  - [x] React前端界面
+  - [x] 并发测试功能
   - [ ] 多版本分流
-  - [ ] Prometheus metrics
   - [ ] 灰度发布
 - **备注说明**:
-  - 实现了完整的MVP功能，满足验收标准
-  - 热更新机制使用版本隔离和引用计数，确保现有连接不受影响
+  - 实现了真正的模型进程隔离架构，每个模型运行在独立Golang进程中
+  - 支持热更新：新进程启动后，新请求路由到新进程，旧进程继续服务现有连接
+  - 自动端口分配和进程生命周期管理
   - 使用SSE协议实现流式响应，比WebSocket更适合此场景
   - 支持OpenAI和Gemini真实API，以及Mock后端用于测试
-  - 下一步可优化：添加Prometheus监控、实现多版本分流、支持更多后端类型
+  - 下一步可优化：支持更多后端类型，实现负载均衡和故障转移
 
 ## 🤝 贡献
 

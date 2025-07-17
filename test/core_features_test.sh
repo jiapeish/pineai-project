@@ -79,6 +79,25 @@ else
     test_failed "模型列表查询失败或模型数量不足"
 fi
 
+test_info "1.5 查看模型进程"
+PROCESSES_RESPONSE=$(curl -s -X GET "${BASE_URL}/processes")
+PROCESS_COUNT=$(echo "$PROCESSES_RESPONSE" | jq '.processes | length' 2>/dev/null || echo "0")
+if [ "$PROCESS_COUNT" -ge 2 ]; then
+    test_passed "模型进程查询成功，共 $PROCESS_COUNT 个进程"
+    echo "$PROCESSES_RESPONSE" | jq '.' 2>/dev/null || echo "$PROCESSES_RESPONSE"
+else
+    test_warning "模型进程查询可能有问题，当前进程数: $PROCESS_COUNT"
+fi
+
+test_info "1.6 查看进程统计"
+STATS_RESPONSE=$(curl -s -X GET "${BASE_URL}/stats")
+if echo "$STATS_RESPONSE" | grep -q "total_processes"; then
+    test_passed "进程统计查询成功"
+    echo "$STATS_RESPONSE" | jq '.' 2>/dev/null || echo "$STATS_RESPONSE"
+else
+    test_warning "进程统计查询可能有问题"
+fi
+
 echo ""
 echo "2️⃣ 推理接口流式返回测试"
 echo "----------------------"
